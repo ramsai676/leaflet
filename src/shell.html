@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leaflet: what the FDA label actually says</title>
+<meta name="description" content="Enter the medicines you take. Leaflet shows the FDA-documented risks, every warning quoted from the label it came from. It never writes a sentence about your medicines.">
+<style>/*__CSS__*/</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wordmark">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <rect x="2.6" y="2.6" width="12.8" height="12.8" rx="3" stroke="currentColor" stroke-width="1.6"/>
+      <path d="M9 5.9v6.2M5.9 9h6.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+    Leaflet
+  </div>
+  <div class="tagline">Every warning quoted from the FDA label it came from</div>
+  <div class="masthead-actions">
+    <button class="btn" id="reset" type="button" hidden>Start over</button>
+  </div>
+</header>
+
+<main id="intake" class="intake">
+  <h1>What does the label actually say?</h1>
+  <p>
+    Add the medicines you take. Leaflet reads the labels the FDA approved and
+    shows you the serious warnings, the ones that apply to combinations, and
+    where each one is written down. It never writes a sentence about your
+    medicines, so there is nothing it could invent.
+  </p>
+
+  <div class="dropzone">
+    <div class="med-entry">
+      <input type="text" id="med-input" placeholder="Type a medicine, then press Enter" autocomplete="off" spellcheck="false">
+      <button class="btn" id="add" type="button">Add</button>
+    </div>
+    <div id="meds" class="meds"></div>
+    <div class="dropzone-hint" id="med-count">No medicines added yet</div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-primary" id="check" type="button" disabled>Check these medicines</button>
+    <button class="btn" id="sample" type="button">Try a sample list</button>
+  </div>
+  <p class="disclaimer">
+    Leaflet quotes public FDA labels. It is not medical advice and it does not
+    know your history. Talk to a pharmacist or doctor before changing anything.
+  </p>
+  <div id="error" class="error" hidden></div>
+</main>
+
+<div class="workspace" id="results" hidden>
+  <aside class="findings-pane">
+    <div class="summary" id="summary"></div>
+    <div class="profiles" id="profiles"></div>
+  </aside>
+  <article class="document">
+    <div class="coverage" id="coverage"></div>
+    <div id="findings"></div>
+    <p class="disclaimer">
+      Every quote above is text from an approved FDA label, reachable through the
+      link on each card. Leaflet is not medical advice.
+    </p>
+  </article>
+</div>
+
+<script>/*__JS__*/</script>
+</body>
+</html>
