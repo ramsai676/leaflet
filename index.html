@@ -1,0 +1,1162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leaflet: what the FDA label actually says</title>
+<meta name="description" content="Enter the medicines you take. Leaflet shows the FDA-documented risks, every warning quoted from the label it came from. It never writes a sentence about your medicines.">
+<style>/* Anchor reads like a legal document on one side and a tool on the other, so the
+   document keeps a serif and the interface stays in system sans. The split is
+   deliberate: it tells you at a glance which half is evidence and which half is
+   the machine talking. */
+
+:root {
+  color-scheme: light dark;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
+  --bg: #fbfaf8;
+  --panel: #ffffff;
+  --ink: #14161a;
+  --ink-2: #4a5058;
+  --ink-3: #767d86;
+  --line: #e4e2dd;
+  --line-2: #efedE8;
+
+  --risk: #b42318;
+  --risk-bg: #fef3f2;
+  --risk-line: #fecdc9;
+  --watch: #a15c07;
+  --watch-bg: #fffaeb;
+  --watch-line: #fedf89;
+  --info: #475467;
+  --info-bg: #f4f5f7;
+  --info-line: #e0e3e8;
+
+  --accent: #14161a;
+  --mark: #fff1a8;
+  --mark-live: #ffd84d;
+
+  --radius: 10px;
+  --shadow: 0 1px 2px rgba(16, 18, 22, 0.05), 0 4px 16px -6px rgba(16, 18, 22, 0.10);
+}
+
+:root[data-theme='dark'],
+:root:not([data-theme='light']) {
+  @media (prefers-color-scheme: dark) {
+    --bg: #0e1013;
+    --panel: #16191e;
+    --ink: #eceef1;
+    --ink-2: #a6adb6;
+    --ink-3: #767d86;
+    --line: #262b32;
+    --line-2: #1d2127;
+
+    --risk: #fda29b;
+    --risk-bg: #2a1512;
+    --risk-line: #55211c;
+    --watch: #fec84b;
+    --watch-bg: #251c09;
+    --watch-line: #4e3a0d;
+    --info: #a6adb6;
+    --info-bg: #1b1f25;
+    --info-line: #2a2f37;
+
+    --accent: #eceef1;
+    --mark: #4d4212;
+    --mark-live: #7a6716;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 16px -6px rgba(0, 0, 0, 0.5);
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/* .workspace sets display:grid, which outranks the hidden attribute's UA style.
+   Without this the results pane leaks under the intake screen. */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.55 ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- shell ---------- */
+
+.masthead {
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 650;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+
+.wordmark svg { display: block; }
+
+.tagline {
+  color: var(--ink-3);
+  font-size: 12.5px;
+  border-left: 1px solid var(--line);
+  padding-left: 16px;
+}
+
+.masthead-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+/* ---------- controls ---------- */
+
+.btn {
+  font: inherit;
+  font-weight: 550;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 13px;
+  cursor: pointer;
+  transition: transform 160ms var(--ease-out), border-color 160ms ease, background 160ms ease;
+}
+
+.btn:active { transform: scale(0.97); }
+
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover { border-color: var(--ink-3); }
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* ---------- drop zone ---------- */
+
+.intake {
+  max-width: 860px;
+  margin: 56px auto;
+  padding: 0 20px;
+}
+
+.intake h1 {
+  font-size: 30px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin: 0 0 10px;
+  font-weight: 640;
+}
+
+.intake p {
+  color: var(--ink-2);
+  margin: 0 0 26px;
+  font-size: 15px;
+  max-width: 60ch;
+}
+
+.dropzone {
+  border: 1.5px dashed var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  padding: 40px 24px;
+  text-align: center;
+  transition: border-color 200ms ease, background 200ms ease, transform 200ms var(--ease-out);
+}
+
+.dropzone[data-over='true'] {
+  border-color: var(--ink-2);
+  background: var(--info-bg);
+  transform: scale(1.005);
+}
+
+.dropzone-hint { color: var(--ink-3); font-size: 13px; margin-top: 10px; }
+
+textarea.paste {
+  width: 100%;
+  min-height: 180px;
+  margin-top: 18px;
+  padding: 14px 16px;
+  font: 13px/1.6 ui-monospace, "SF Mono", Menlo, monospace;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  resize: vertical;
+  transition: border-color 160ms ease;
+}
+
+textarea.paste:focus { outline: none; border-color: var(--ink-3); }
+
+/* ---------- results layout ---------- */
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(330px, 400px) 1fr;
+  gap: 0;
+  align-items: start;
+  min-height: calc(100vh - 59px);
+}
+
+.findings {
+  border-right: 1px solid var(--line);
+  padding: 16px;
+  position: sticky;
+  top: 59px;
+  max-height: calc(100vh - 59px);
+  overflow-y: auto;
+}
+
+.summary {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.tally {
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 9px 11px;
+  background: var(--panel);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  transition: transform 160ms var(--ease-out), border-color 160ms ease;
+}
+
+.tally:active { transform: scale(0.97); }
+.tally[aria-pressed='true'] { border-color: var(--ink); }
+.tally .n { font-size: 19px; font-weight: 640; letter-spacing: -0.02em; display: block; }
+.tally .k { font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; }
+.tally[data-sev='risk'] .n { color: var(--risk); }
+.tally[data-sev='watch'] .n { color: var(--watch); }
+
+.finding {
+  border: 1px solid var(--line);
+  border-left-width: 3px;
+  border-radius: var(--radius);
+  background: var(--panel);
+  padding: 11px 13px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  display: block;
+  transition: transform 160ms var(--ease-out), border-color 160ms ease, box-shadow 160ms ease;
+
+  opacity: 0;
+  animation: rise 280ms var(--ease-out) forwards;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.finding:active { transform: scale(0.985); }
+.finding[data-active='true'] { border-color: var(--ink); box-shadow: var(--shadow); }
+
+@media (hover: hover) and (pointer: fine) {
+  .finding:hover { border-color: var(--ink-3); }
+}
+
+.finding[data-sev='risk'] { border-left-color: var(--risk); }
+.finding[data-sev='watch'] { border-left-color: var(--watch); }
+.finding[data-sev='info'] { border-left-color: var(--info-line); }
+
+.finding-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 5px; }
+.finding-label { font-weight: 600; font-size: 13.5px; letter-spacing: -0.005em; }
+
+.chip {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 5px;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.chip[data-sev='risk'] { color: var(--risk); background: var(--risk-bg); border: 1px solid var(--risk-line); }
+.chip[data-sev='watch'] { color: var(--watch); background: var(--watch-bg); border: 1px solid var(--watch-line); }
+.chip[data-sev='info'] { color: var(--info); background: var(--info-bg); border: 1px solid var(--info-line); }
+
+.finding-cite {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 6px;
+}
+
+.finding-quote {
+  font-family: Charter, Georgia, "Times New Roman", serif;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-2);
+  border-left: 2px solid var(--line);
+  padding-left: 9px;
+  margin-bottom: 7px;
+}
+
+.finding-why { font-size: 12.5px; color: var(--ink-2); line-height: 1.5; }
+
+/* ---------- document ---------- */
+
+.document {
+  padding: 28px 40px 120px;
+  max-width: 780px;
+}
+
+.clause {
+  scroll-margin-top: 76px;
+  padding: 4px 10px;
+  margin: 0 -10px 14px;
+  border-radius: 6px;
+  transition: background 220ms ease;
+}
+
+.clause[data-lit='true'] { background: var(--info-bg); }
+
+.clause-no {
+  font: 600 11.5px/1 ui-sans-serif, system-ui, sans-serif;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+  display: block;
+  margin-bottom: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.clause-body {
+  font-family: Charter, Georgia, "Times New Roman", serif;
+  font-size: 15px;
+  line-height: 1.68;
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+mark {
+  background: var(--mark);
+  color: inherit;
+  padding: 1px 2px;
+  border-radius: 3px;
+  transition: background 240ms ease;
+}
+
+mark[data-live='true'] { background: var(--mark-live); }
+
+.empty {
+  color: var(--ink-3);
+  font-size: 13px;
+  text-align: center;
+  padding: 30px 10px;
+}
+
+/* ---------- responsive ---------- */
+
+@media (max-width: 900px) {
+  .workspace { grid-template-columns: 1fr; }
+  .findings {
+    position: static;
+    max-height: none;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .document { padding: 22px 20px 80px; }
+  .tagline { display: none; }
+}
+
+/* ---------- reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .finding { animation: fade 200ms ease forwards; }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  .btn:active, .finding:active, .tally:active { transform: none; }
+  .dropzone[data-over='true'] { transform: none; }
+  * { scroll-behavior: auto !important; }
+}
+
+/* ---------- leaflet additions ---------- */
+
+.med-entry { display: flex; gap: 8px; margin-bottom: 12px; }
+
+.med-entry input {
+  flex: 1;
+  font: inherit;
+  font-size: 14px;
+  padding: 9px 13px;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  transition: border-color 160ms ease;
+}
+
+.med-entry input:focus { outline: none; border-color: var(--ink-3); }
+
+.meds { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; }
+
+.med {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--ink);
+  background: var(--info-bg);
+  border: 1px solid var(--info-line);
+  border-radius: 999px;
+  padding: 5px 11px;
+  cursor: pointer;
+  transition: transform 160ms var(--ease-out), border-color 160ms ease;
+}
+
+.med:active { transform: scale(0.96); }
+.med-x { color: var(--ink-3); font-size: 15px; line-height: 1; }
+
+@media (hover: hover) and (pointer: fine) {
+  .med:hover { border-color: var(--risk); }
+  .med:hover .med-x { color: var(--risk); }
+}
+
+.actions { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
+
+.disclaimer {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  margin-top: 16px;
+  max-width: 62ch;
+  line-height: 1.5;
+}
+
+.error {
+  margin-top: 14px;
+  padding: 11px 13px;
+  border-radius: var(--radius);
+  background: var(--risk-bg);
+  border: 1px solid var(--risk-line);
+  color: var(--risk);
+  font-size: 13px;
+}
+
+.findings-pane {
+  border-right: 1px solid var(--line);
+  padding: 16px;
+  position: sticky;
+  top: 59px;
+  max-height: calc(100vh - 59px);
+  overflow-y: auto;
+}
+
+.profiles { margin-top: 14px; }
+
+.profile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  background: var(--panel);
+}
+
+.profile[data-unresolved='true'] { border-style: dashed; }
+.profile-name { font-weight: 600; font-size: 13px; }
+.profile-detail { font-size: 11.5px; color: var(--ink-3); line-height: 1.4; }
+
+.coverage {
+  color: var(--ink-3);
+  font-size: 12px;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.finding[data-sev='severe'] { border-left-color: var(--risk); }
+.finding[data-sev='caution'] { border-left-color: var(--watch); }
+.finding[data-sev='note'] { border-left-color: var(--info-line); }
+
+.chip[data-sev='severe'] { color: var(--risk); background: var(--risk-bg); border: 1px solid var(--risk-line); }
+.chip[data-sev='caution'] { color: var(--watch); background: var(--watch-bg); border: 1px solid var(--watch-line); }
+.chip[data-sev='note'] { color: var(--info); background: var(--info-bg); border: 1px solid var(--info-line); }
+
+.tally[data-sev='severe'] .n { color: var(--risk); }
+.tally[data-sev='caution'] .n { color: var(--watch); }
+
+.finding { cursor: default; }
+.finding:active { transform: none; }
+
+.finding-quote {
+  font-family: Charter, Georgia, "Times New Roman", serif;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ink);
+  border-left: 2px solid var(--line);
+  padding-left: 11px;
+  margin: 0 0 8px;
+}
+
+.finding-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 12.5px;
+  font-weight: 550;
+  color: var(--ink-2);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 1px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .finding-link:hover { color: var(--ink); border-color: var(--ink-3); }
+}
+
+@media (max-width: 900px) {
+  .findings-pane { position: static; max-height: none; border-right: 0; border-bottom: 1px solid var(--line); }
+}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wordmark">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <rect x="2.6" y="2.6" width="12.8" height="12.8" rx="3" stroke="currentColor" stroke-width="1.6"/>
+      <path d="M9 5.9v6.2M5.9 9h6.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+    Leaflet
+  </div>
+  <div class="tagline">Every warning quoted from the FDA label it came from</div>
+  <div class="masthead-actions">
+    <button class="btn" id="reset" type="button" hidden>Start over</button>
+  </div>
+</header>
+
+<main id="intake" class="intake">
+  <h1>What does the label actually say?</h1>
+  <p>
+    Add the medicines you take. Leaflet reads the labels the FDA approved and
+    shows you the serious warnings, the ones that apply to combinations, and
+    where each one is written down. It never writes a sentence about your
+    medicines, so there is nothing it could invent.
+  </p>
+
+  <div class="dropzone">
+    <div class="med-entry">
+      <input type="text" id="med-input" placeholder="Type a medicine, then press Enter" autocomplete="off" spellcheck="false">
+      <button class="btn" id="add" type="button">Add</button>
+    </div>
+    <div id="meds" class="meds"></div>
+    <div class="dropzone-hint" id="med-count">No medicines added yet</div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-primary" id="check" type="button" disabled>Check these medicines</button>
+    <button class="btn" id="sample" type="button">Try a sample list</button>
+  </div>
+  <p class="disclaimer">
+    Leaflet quotes public FDA labels. It is not medical advice and it does not
+    know your history. Talk to a pharmacist or doctor before changing anything.
+  </p>
+  <div id="error" class="error" hidden></div>
+</main>
+
+<div class="workspace" id="results" hidden>
+  <aside class="findings-pane">
+    <div class="summary" id="summary"></div>
+    <div class="profiles" id="profiles"></div>
+  </aside>
+  <article class="document">
+    <div class="coverage" id="coverage"></div>
+    <div id="findings"></div>
+    <p class="disclaimer">
+      Every quote above is text from an approved FDA label, reachable through the
+      link on each card. Leaflet is not medical advice.
+    </p>
+  </article>
+</div>
+
+<script>(function(){
+'use strict';
+/* ---- fda.js ---- */
+// openFDA publishes the drug labels the FDA actually approved. It is free, needs
+// no key, and is the source of record, which is why nothing here consults any
+// other database: a warning that cannot be traced to a label has no business
+// being shown to someone deciding what to take.
+
+const LABEL = 'https://api.fda.gov/drug/label.json';
+
+// The sections that carry risk, in the order a person should meet them. Boxed
+// warnings come first because the FDA reserves them for risks that can kill.
+const SECTIONS = [
+  { key: 'boxed_warning',        label: 'Boxed warning',     severity: 'severe' },
+  { key: 'contraindications',    label: 'Do not take if',    severity: 'severe' },
+  { key: 'drug_interactions',    label: 'Drug interactions', severity: 'caution' },
+  { key: 'warnings_and_cautions', label: 'Warnings',         severity: 'caution' },
+  { key: 'warnings',             label: 'Warnings',          severity: 'caution' },
+  { key: 'pregnancy',            label: 'Pregnancy',         severity: 'note' },
+  { key: 'geriatric_use',        label: 'Older adults',      severity: 'note' },
+  { key: 'adverse_reactions',    label: 'Reported effects',  severity: 'note' }
+];
+class NotFound extends Error {}
+
+function quoted(term) {
+  return `"${term.replace(/"/g, '')}"`;
+}
+
+// Generic name first: a brand search matches one manufacturer's product, while
+// the generic matches the substance, which is what a risk actually attaches to.
+function queries(name) {
+  const t = name.trim().toLowerCase();
+  return [
+    `openfda.generic_name:${quoted(t)}`,
+    `openfda.brand_name:${quoted(t)}`,
+    `openfda.substance_name:${quoted(t)}`
+  ];
+}
+
+async function ask(search, limit = 1) {
+  const url = `${LABEL}?search=${encodeURIComponent(search)}&limit=${limit}`;
+  const res = await fetch(url, { headers: { Accept: 'application/json' } });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`openFDA ${res.status}`);
+  const body = await res.json();
+  return { results: body.results || [], total: body.meta?.results?.total || 0, url };
+}
+
+// Asking for metformin and being shown the label for a sitagliptin-metformin
+// combination is not a near miss, it is the wrong drug's warnings. Candidates
+// are ranked so the plainest matching product wins, and a label carrying real
+// risk sections beats a minimal over-the-counter one.
+function scoreCandidate(r, name) {
+  const term = name.trim().toLowerCase();
+  const generic = ((r.openfda?.generic_name || [])[0] || '').toLowerCase();
+  const substances = (r.openfda?.substance_name || []).length || 1;
+  const risk = SECTIONS.filter(s => r[s.key]).length;
+
+  let score = 0;
+  if (generic === term) score += 100;
+  else if (generic.startsWith(term)) score += 40;
+  else if (generic.includes(term)) score += 20;
+
+  // Each additional active ingredient is another drug's warnings mixed in.
+  score -= (substances - 1) * 25;
+  score += risk * 6;
+  if (r.boxed_warning) score += 10;
+  return score;
+}
+async function lookup(name) {
+  for (const q of queries(name)) {
+    const hit = await ask(q, 25);
+    if (hit?.results.length) {
+      const ranked = [...hit.results].sort(
+        (a, b) => scoreCandidate(b, name) - scoreCandidate(a, name)
+      );
+      const r = ranked[0];
+      return {
+        query: name,
+        matchedOn: q.split(':')[0].replace('openfda.', ''),
+        genericName: (r.openfda?.generic_name || [])[0] || null,
+        brandNames: (r.openfda?.brand_name || []).slice(0, 4),
+        substances: (r.openfda?.substance_name || []).slice(0, 6),
+        classes: (r.openfda?.pharm_class_epc || []).slice(0, 4),
+        route: (r.openfda?.route || []).slice(0, 3),
+        manufacturer: (r.openfda?.manufacturer_name || [])[0] || null,
+        setId: (r.openfda?.spl_set_id || [])[0] || null,
+        effectiveDate: r.effective_time || null,
+        labelCount: hit.total,
+        sourceUrl: hit.url,
+        sections: Object.fromEntries(
+          SECTIONS.filter(s => r[s.key]).map(s => [s.key, String(r[s.key][0])])
+        )
+      };
+    }
+  }
+  throw new NotFound(`no FDA label found for "${name}"`);
+}
+
+// DailyMed renders the same label a human can read, so a citation can point at
+// something checkable rather than at a JSON endpoint.
+function labelUrl(profile) {
+  return profile.setId
+    ? `https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=${profile.setId}`
+    : profile.sourceUrl;
+}
+const pause = (ms = 150) => new Promise(r => setTimeout(r, ms));
+
+/* ---- rxclass.js ---- */
+// A label rarely names the other drug. Ibuprofen's label warns about
+// "anticoagulants"; it never says "warfarin". Matching on product names alone
+// therefore misses the interaction that matters most, so each drug also carries
+// the words its class is actually called in prose.
+
+const RXCLASS = 'https://rxnav.nlm.nih.gov/REST/rxclass/class/byDrugName.json';
+
+// ATC codes are hierarchical, so a prefix identifies a family. This table is
+// deliberately small and auditable: it covers the classes that appear in
+// interaction warnings, and anything not listed simply contributes no alias
+// rather than a guess.
+const ATC_TERMS = [
+  ['B01', ['anticoagulant', 'antithrombotic', 'blood thinner']],
+  ['B01AC', ['antiplatelet', 'platelet aggregation inhibitor']],
+  ['M01A', ['nsaid', 'nonsteroidal anti-inflammatory', 'non-steroidal anti-inflammatory']],
+  ['N02BA', ['salicylate', 'aspirin']],
+  ['N02A', ['opioid', 'narcotic analgesic']],
+  ['C09A', ['ace inhibitor', 'angiotensin converting enzyme inhibitor']],
+  ['C09C', ['angiotensin receptor blocker', 'angiotensin ii receptor']],
+  ['C10AA', ['statin', 'hmg-coa reductase inhibitor']],
+  ['C03', ['diuretic']],
+  ['C07', ['beta blocker', 'beta-adrenergic blocking']],
+  ['C08', ['calcium channel blocker']],
+  ['A10B', ['antidiabetic', 'oral hypoglycemic', 'hypoglycemic agent']],
+  ['A10A', ['insulin']],
+  ['A02BC', ['proton pump inhibitor']],
+  ['N06AB', ['ssri', 'selective serotonin reuptake inhibitor', 'antidepressant']],
+  ['N06A', ['antidepressant']],
+  ['N05A', ['antipsychotic']],
+  ['N05B', ['benzodiazepine', 'anxiolytic']],
+  ['N03A', ['anticonvulsant', 'antiepileptic']],
+  ['J01', ['antibiotic', 'antibacterial']],
+  ['H02', ['corticosteroid', 'steroid']],
+  ['L04', ['immunosuppressant']],
+  ['M04', ['antigout']]
+];
+
+const cache = new Map();
+async function classesFor(name) {
+  const key = name.trim().toLowerCase();
+  if (cache.has(key)) return cache.get(key);
+
+  let codes = [];
+  let names = [];
+  try {
+    const res = await fetch(`${RXCLASS}?drugName=${encodeURIComponent(key)}&relaSource=ATC`,
+      { headers: { Accept: 'application/json' } });
+    if (res.ok) {
+      const body = await res.json();
+      const items = body.rxclassDrugInfoList?.rxclassDrugInfo || [];
+      codes = [...new Set(items.map(i => i.rxclassMinConceptItem.classId))];
+      names = [...new Set(items.map(i => i.rxclassMinConceptItem.className.toLowerCase()))];
+    }
+  } catch {
+    // RxClass being unavailable degrades matching, it does not break the review.
+  }
+
+  const terms = new Set(names);
+  for (const code of codes) {
+    for (const [prefix, words] of ATC_TERMS) {
+      if (code.startsWith(prefix)) words.forEach(w => terms.add(w));
+    }
+  }
+
+  const result = { codes, terms: [...terms] };
+  cache.set(key, result);
+  return result;
+}
+
+/* ---- analyse.js ---- */
+// Nothing in this file writes a sentence about a medicine. It finds sentences
+// the FDA already published and says where each one came from. That is the
+// safety property, and it is what makes the output checkable by a pharmacist
+// in the time it takes to click a link.
+
+const SENTENCE = /[^.!?]+[.!?]+/g;
+
+function sentences(text) {
+  return String(text).replace(/\s+/g, ' ').match(SENTENCE) || [String(text)];
+}
+
+function trim(s, max = 300) {
+  const clean = s.replace(/\s+/g, ' ').trim();
+  return clean.length > max ? clean.slice(0, max).replace(/\s+\S*$/, '') + '…' : clean;
+}
+
+// Whitespace is normalised, nothing else. The result is a contiguous run of the
+// label's own words, cut at a sentence end where one falls nearby so it reads
+// as a complete thought rather than stopping mid-clause.
+function opening(body, max) {
+  const clean = String(body).replace(/\s+/g, ' ').trim();
+  if (clean.length <= max) return clean;
+
+  const window = clean.slice(0, max);
+  const lastStop = Math.max(window.lastIndexOf('. '), window.lastIndexOf('? '), window.lastIndexOf('! '));
+  if (lastStop > max * 0.5) return window.slice(0, lastStop + 1);
+  return window.replace(/\s+\S*$/, '') + '…';
+}
+
+// A boxed warning is the FDA's most serious designation and is usually the only
+// thing a person has time to read, so it is surfaced whole rather than sampled.
+function ownRisks(profile) {
+  const out = [];
+  const link = labelUrl(profile);
+
+  for (const section of SECTIONS) {
+    const body = profile.sections[section.key];
+    if (!body) continue;
+    if (section.key === 'adverse_reactions' || section.key === 'geriatric_use') continue;
+
+    // Rejoining split sentences with a space corrupts the text: "8.1 Pregnancy"
+    // splits at the decimal point and comes back as "8. 1 Pregnancy", which is
+    // not what the label says. A contiguous slice of the original cannot.
+    const first = opening(body, section.key === 'boxed_warning' ? 460 : 320);
+
+    out.push({
+      kind: 'label',
+      drug: profile.query,
+      label: section.label,
+      severity: section.severity,
+      quote: first,
+      section: section.key,
+      sourceUrl: link,
+      why: section.key === 'boxed_warning'
+        ? 'A boxed warning is the strongest warning the FDA issues, reserved for risks that can be fatal or permanently disabling.'
+        : `Quoted from the ${section.label.toLowerCase()} section of the approved FDA label.`
+    });
+  }
+  return out;
+}
+
+// Names a label might use for another drug in the list: its generic name, its
+// brand names, its active substances, and its drug class. A label often names
+// the class rather than the product, and missing that would miss the warning.
+function aliases(profile) {
+  const names = new Set();
+  const add = v => { if (v && String(v).length > 3) names.add(String(v).toLowerCase()); };
+  add(profile.query);
+  add(profile.genericName);
+  for (const b of profile.brandNames) add(b);
+  for (const s of profile.substances) add(s);
+  for (const c of profile.classes) add(c.replace(/\s*\[EPC\]\s*$/i, ''));
+  // Class words matter more than product names here: a label warns about
+  // "anticoagulants", not about warfarin by name.
+  for (const t of profile.classTerms || []) add(t);
+  return [...names];
+}
+
+// Labels write classes in the plural: "anticoagulants", not "anticoagulant".
+// A trailing word boundary fails against that, which silently dropped the
+// ibuprofen and warfarin bleeding interaction, so an optional plural is allowed.
+function mentions(text, alias) {
+  const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`\\b${escaped}(?:s|es)?\\b`, 'i').test(text);
+}
+
+function crossRisks(a, b) {
+  const found = [];
+  const bAliases = aliases(b);
+  const link = labelUrl(a);
+
+  for (const section of ['drug_interactions', 'contraindications', 'boxed_warning', 'warnings_and_cautions', 'warnings']) {
+    const body = a.sections[section];
+    if (!body) continue;
+
+    for (const sentence of sentences(body)) {
+      const hit = bAliases.find(alias => mentions(sentence, alias));
+      if (!hit) continue;
+      if (sentence.trim().length < 30) continue;
+
+      found.push({
+        kind: 'interaction',
+        drug: a.query,
+        against: b.query,
+        matchedTerm: hit,
+        label: `${a.query} + ${b.query}`,
+        severity: section === 'contraindications' || section === 'boxed_warning' ? 'severe' : 'caution',
+        quote: trim(sentence, 330),
+        section,
+        sourceUrl: link,
+        why: `The FDA label for ${a.query} names ${hit} in its ${section.replace(/_/g, ' ')} section. ` +
+             `That is the label itself describing the combination, not an inference drawn from it.`
+      });
+      break; // one clear citation per section reads better than five near-duplicates
+    }
+  }
+  return found;
+}
+
+const ORDER = { severe: 0, caution: 1, note: 2 };async function review(names) {
+  const profiles = [];
+  const unresolved = [];
+
+  for (const name of names) {
+    try {
+      const profile = await lookup(name);
+      const { codes, terms } = await classesFor(name);
+      profile.atcCodes = codes;
+      profile.classTerms = terms;
+      profiles.push(profile);
+    } catch (err) {
+      unresolved.push({ name, reason: err instanceof NotFound ? 'no FDA label found' : err.message });
+    }
+    await pause();
+  }
+
+  const findings = [];
+  for (const p of profiles) findings.push(...ownRisks(p));
+
+  // Interactions are directional: A's label may name B while B's names nothing.
+  for (const a of profiles) {
+    for (const b of profiles) {
+      if (a === b) continue;
+      findings.push(...crossRisks(a, b));
+    }
+  }
+
+  findings.sort((x, y) => {
+    const s = ORDER[x.severity] - ORDER[y.severity];
+    if (s !== 0) return s;
+    return (x.kind === 'interaction' ? 0 : 1) - (y.kind === 'interaction' ? 0 : 1);
+  });
+
+  const counts = { severe: 0, caution: 0, note: 0 };
+  for (const f of findings) counts[f.severity]++;
+
+  return {
+    profiles,
+    unresolved,
+    findings,
+    counts,
+    interactions: findings.filter(f => f.kind === 'interaction').length,
+    checkedAt: new Date().toISOString()
+  };
+}
+
+/* ---- ui.js ---- */
+const $ = sel => document.querySelector(sel);
+const el = (tag, cls) => { const n = document.createElement(tag); if (cls) n.className = cls; return n; };
+
+const state = { meds: [], result: null, filter: null, running: false };
+
+const SEVERITY_NAME = { severe: 'Serious', caution: 'Caution', note: 'Worth knowing' };
+function meds() { return state.meds; }
+function addMed(name) {
+  const clean = name.trim().replace(/\s+/g, ' ');
+  if (!clean) return false;
+  if (state.meds.some(m => m.toLowerCase() === clean.toLowerCase())) return false;
+  state.meds.push(clean);
+  renderMeds();
+  return true;
+}
+
+function removeMed(name) {
+  state.meds = state.meds.filter(m => m !== name);
+  renderMeds();
+}
+
+function renderMeds() {
+  const host = $('#meds');
+  host.innerHTML = '';
+  for (const m of state.meds) {
+    const chip = el('button', 'med');
+    chip.type = 'button';
+    chip.innerHTML = `<span>${m}</span><span class="med-x" aria-hidden="true">×</span>`;
+    chip.setAttribute('aria-label', `Remove ${m}`);
+    chip.addEventListener('click', () => removeMed(m));
+    host.appendChild(chip);
+  }
+  $('#check').disabled = state.meds.length === 0 || state.running;
+  $('#med-count').textContent = state.meds.length
+    ? `${state.meds.length} ${state.meds.length === 1 ? 'medicine' : 'medicines'}`
+    : 'No medicines added yet';
+}
+
+function renderSummary() {
+  const host = $('#summary');
+  host.innerHTML = '';
+  for (const sev of ['severe', 'caution', 'note']) {
+    const b = el('button', 'tally');
+    b.type = 'button';
+    b.dataset.sev = sev;
+    b.setAttribute('aria-pressed', String(state.filter === sev));
+    const n = el('span', 'n');
+    n.textContent = state.result.counts[sev];
+    const k = el('span', 'k');
+    k.textContent = SEVERITY_NAME[sev];
+    b.append(n, k);
+    b.addEventListener('click', () => {
+      state.filter = state.filter === sev ? null : sev;
+      renderSummary();
+      renderFindings();
+    });
+    host.appendChild(b);
+  }
+}
+
+function renderFindings() {
+  const host = $('#findings');
+  host.innerHTML = '';
+
+  const list = state.filter
+    ? state.result.findings.filter(f => f.severity === state.filter)
+    : state.result.findings;
+
+  if (!list.length) {
+    const e = el('div', 'empty');
+    e.textContent = 'Nothing at this level.';
+    host.appendChild(e);
+    return;
+  }
+
+  list.forEach((f, i) => {
+    const card = el('article', 'finding');
+    card.dataset.sev = f.severity;
+    card.style.animationDelay = `${Math.min(i, 12) * 40}ms`;
+
+    const head = el('div', 'finding-head');
+    const label = el('span', 'finding-label');
+    label.textContent = f.kind === 'interaction' ? f.label : `${f.drug}: ${f.label}`;
+    const chip = el('span', 'chip');
+    chip.dataset.sev = f.severity;
+    chip.textContent = f.kind === 'interaction' ? 'combination' : SEVERITY_NAME[f.severity];
+    head.append(label, chip);
+
+    const cite = el('div', 'finding-cite');
+    cite.textContent = `FDA label · ${f.section.replace(/_/g, ' ')}` +
+      (f.matchedTerm ? ` · names "${f.matchedTerm}"` : '');
+
+    const quote = el('blockquote', 'finding-quote');
+    quote.textContent = f.quote;
+
+    const why = el('div', 'finding-why');
+    why.textContent = f.why;
+
+    const link = el('a', 'finding-link');
+    link.href = f.sourceUrl;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.textContent = 'Read the full label →';
+
+    card.append(head, cite, quote, why, link);
+    host.appendChild(card);
+  });
+}
+
+function renderProfiles() {
+  const host = $('#profiles');
+  host.innerHTML = '';
+  for (const p of state.result.profiles) {
+    const row = el('div', 'profile');
+    const name = el('span', 'profile-name');
+    name.textContent = p.query;
+    const detail = el('span', 'profile-detail');
+    detail.textContent = [p.genericName, p.classes[0] || p.classTerms?.[0]]
+      .filter(Boolean).join(' · ');
+    row.append(name, detail);
+    host.appendChild(row);
+  }
+  for (const u of state.result.unresolved) {
+    const row = el('div', 'profile');
+    row.dataset.unresolved = 'true';
+    const name = el('span', 'profile-name');
+    name.textContent = u.name;
+    const detail = el('span', 'profile-detail');
+    detail.textContent = u.reason + ', so nothing is shown for it';
+    row.append(name, detail);
+    host.appendChild(row);
+  }
+}
+async function run() {
+  if (state.running || !state.meds.length) return;
+  state.running = true;
+  $('#check').disabled = true;
+  $('#check').textContent = 'Reading FDA labels…';
+
+  try {
+    state.result = await review(state.meds);
+    state.filter = null;
+    $('#intake').hidden = true;
+    $('#results').hidden = false;
+    $('#reset').hidden = false;
+    renderSummary();
+    renderProfiles();
+    renderFindings();
+    $('#coverage').textContent =
+      `${state.result.profiles.length} of ${state.meds.length} medicines matched to an FDA label · ` +
+      `${state.result.findings.length} findings · ${state.result.interactions} about combinations`;
+  } catch (err) {
+    $('#error').hidden = false;
+    $('#error').textContent = `Could not reach the FDA label service: ${err.message}`;
+  } finally {
+    state.running = false;
+    $('#check').textContent = 'Check these medicines';
+    $('#check').disabled = false;
+  }
+}
+function reset() {
+  state.result = null;
+  $('#intake').hidden = false;
+  $('#results').hidden = true;
+  $('#reset').hidden = true;
+  $('#error').hidden = true;
+}
+
+/* ---- app.js ---- */
+// A real list, because a demo with one drug proves nothing. Warfarin with
+// ibuprofen is a documented bleeding risk that both labels warn about
+// independently, which is the case this tool exists to surface.
+const SAMPLE = ['warfarin', 'ibuprofen', 'metformin', 'lisinopril'];
+
+function wire() {
+  const input = $('#med-input');
+
+  const commit = () => {
+    const raw = input.value;
+    if (!raw.trim()) return;
+    // People paste lists, so commas and newlines are separators, not names.
+    for (const part of raw.split(/[,\n;]+/)) addMed(part);
+    input.value = '';
+    input.focus();
+  };
+
+  $('#add').addEventListener('click', commit);
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); commit(); }
+  });
+
+  $('#sample').addEventListener('click', () => {
+    for (const m of SAMPLE) addMed(m);
+    run();
+  });
+
+  $('#check').addEventListener('click', run);
+  $('#reset').addEventListener('click', reset);
+
+  if (location.hash === '#demo') {
+    for (const m of SAMPLE) addMed(m);
+    run();
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', wire);
+} else {
+  wire();
+}
+})();</script>
+</body>
+</html>
