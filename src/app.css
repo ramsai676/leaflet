@@ -30,6 +30,8 @@
   --accent: #14161a;
   --mark: #fff1a8;
   --mark-live: #ffd84d;
+  --glow-a: rgba(180, 35, 24, 0.20);
+  --glow-b: rgba(56, 110, 190, 0.18);
 
   --radius: 10px;
   --shadow: 0 1px 2px rgba(16, 18, 22, 0.05), 0 4px 16px -6px rgba(16, 18, 22, 0.10);
@@ -59,6 +61,8 @@
     --accent: #eceef1;
     --mark: #4d4212;
     --mark-live: #7a6716;
+    --glow-a: rgba(253, 120, 110, 0.20);
+    --glow-b: rgba(86, 148, 240, 0.19);
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 16px -6px rgba(0, 0, 0, 0.5);
   }
 }

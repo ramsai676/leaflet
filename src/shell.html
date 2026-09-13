@@ -23,33 +23,63 @@
   </div>
 </header>
 
-<main id="intake" class="intake">
-  <h1>What does the label actually say?</h1>
-  <p>
-    Add the medicines you take. Leaflet reads the labels the FDA approved and
-    shows you the serious warnings, the ones that apply to combinations, and
-    where each one is written down. It never writes a sentence about your
-    medicines, so there is nothing it could invent.
-  </p>
+<main id="intake" class="hero">
+  <div class="hero-inner">
 
-  <div class="dropzone">
-    <div class="med-entry">
-      <input type="text" id="med-input" placeholder="Type a medicine, then press Enter" autocomplete="off" spellcheck="false">
-      <button class="btn" id="add" type="button">Add</button>
+    <span class="eyebrow"><span class="dot"></span> Reads the label, never writes one</span>
+
+    <h1>
+      <span class="line"><span>What does the</span></span>
+      <span class="line"><span>label actually say?</span></span>
+    </h1>
+
+    <p class="lede">
+      Ask a language model about your medication and it will answer confidently.
+      It may cite a study that does not exist, and it will never tell you which
+      happened. Leaflet reads the labels the FDA approved and shows you the
+      serious warnings, the ones that apply to combinations, and
+      <strong>exactly where each one is written down</strong>.
+    </p>
+
+    <div class="hero-panel">
+      <div class="dropzone">
+        <div class="med-entry">
+          <input type="text" id="med-input" placeholder="Type a medicine, then press Enter" autocomplete="off" spellcheck="false">
+          <button class="btn" id="add" type="button">Add</button>
+        </div>
+        <div id="meds" class="meds"></div>
+        <div class="dropzone-hint" id="med-count">No medicines added yet</div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="check" type="button" disabled>Check these medicines</button>
+        <button class="btn" id="sample" type="button">Try a sample list</button>
+      </div>
+      <div id="error" class="error" hidden></div>
     </div>
-    <div id="meds" class="meds"></div>
-    <div class="dropzone-hint" id="med-count">No medicines added yet</div>
-  </div>
 
-  <div class="actions">
-    <button class="btn btn-primary" id="check" type="button" disabled>Check these medicines</button>
-    <button class="btn" id="sample" type="button">Try a sample list</button>
+    <div class="proof">
+      <div class="proof-card">
+        <div class="k">What it shows you</div>
+        <div class="v">“Warfarin sodium can cause major or fatal bleeding.”</div>
+      </div>
+      <div class="proof-link" aria-hidden="true">
+        <svg width="54" height="20" viewBox="0 0 54 20" fill="none">
+          <path class="trace" d="M2 10h44" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M40 4.5 47.5 10 40 15.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="proof-card">
+        <div class="k">Where it came from</div>
+        <div class="v">FDA label &middot; boxed warning &middot; one click to the source</div>
+      </div>
+    </div>
+
+    <p class="disclaimer">
+      Leaflet quotes public FDA labels. It is not medical advice and it does not
+      know your history. Talk to a pharmacist or doctor before changing anything.
+    </p>
   </div>
-  <p class="disclaimer">
-    Leaflet quotes public FDA labels. It is not medical advice and it does not
-    know your history. Talk to a pharmacist or doctor before changing anything.
-  </p>
-  <div id="error" class="error" hidden></div>
 </main>
 
 <div class="workspace" id="results" hidden>

@@ -37,6 +37,8 @@
   --accent: #14161a;
   --mark: #fff1a8;
   --mark-live: #ffd84d;
+  --glow-a: rgba(180, 35, 24, 0.20);
+  --glow-b: rgba(56, 110, 190, 0.18);
 
   --radius: 10px;
   --shadow: 0 1px 2px rgba(16, 18, 22, 0.05), 0 4px 16px -6px rgba(16, 18, 22, 0.10);
@@ -66,6 +68,8 @@
     --accent: #eceef1;
     --mark: #4d4212;
     --mark-live: #7a6716;
+    --glow-a: rgba(253, 120, 110, 0.20);
+    --glow-b: rgba(86, 148, 240, 0.19);
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 16px -6px rgba(0, 0, 0, 0.5);
   }
 }
@@ -538,6 +542,214 @@ mark[data-live='true'] { background: var(--mark-live); }
 @media (max-width: 900px) {
   .findings-pane { position: static; max-height: none; border-right: 0; border-bottom: 1px solid var(--line); }
 }
+
+/* The hero is the only part of these tools a judge sees before deciding whether
+   to care. It gets motion; the working interface does not, because an animation
+   you see once can afford delight and one you see fifty times cannot. */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: 92px 20px 72px;
+  isolation: isolate;
+}
+
+/* A slow colour field behind the headline. Two blurred radials drifting past
+   each other reads as depth without a gradient mesh library or a canvas. */
+.hero::before,
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: -40% -20%;
+  z-index: -1;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.85;
+  will-change: transform;
+}
+
+.hero::before {
+  background: radial-gradient(circle at 30% 40%, var(--glow-a), transparent 62%);
+  animation: drift-a 26s var(--ease-in-out) infinite alternate;
+}
+
+.hero::after {
+  background: radial-gradient(circle at 70% 60%, var(--glow-b), transparent 62%);
+  animation: drift-b 31s var(--ease-in-out) infinite alternate;
+}
+
+@keyframes drift-a {
+  from { transform: translate3d(-6%, -3%, 0) scale(1); }
+  to   { transform: translate3d(7%, 5%, 0) scale(1.12); }
+}
+
+@keyframes drift-b {
+  from { transform: translate3d(5%, 4%, 0) scale(1.08); }
+  to   { transform: translate3d(-7%, -4%, 0) scale(1); }
+}
+
+.hero-inner { max-width: 900px; margin: 0 auto; }
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 13px;
+  margin-bottom: 22px;
+}
+
+.eyebrow .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--risk);
+  box-shadow: 0 0 0 0 var(--risk);
+  animation: pulse 2.4s ease-out infinite;
+}
+
+@keyframes pulse {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--risk) 55%, transparent); }
+  70%  { box-shadow: 0 0 0 7px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.hero h1 {
+  font-size: clamp(32px, 5.4vw, 54px);
+  line-height: 1.06;
+  letter-spacing: -0.033em;
+  font-weight: 660;
+  margin: 0 0 18px;
+  max-width: 17ch;
+}
+
+.hero h1 .line { display: block; overflow: hidden; }
+
+/* Each line rises from behind the one above it, which reads as the sentence
+   assembling rather than as text sliding around. */
+.hero h1 .line > span {
+  display: block;
+  transform: translateY(100%);
+  animation: line-up 760ms var(--ease-out) forwards;
+}
+
+.hero h1 .line:nth-child(1) > span { animation-delay: 60ms; }
+.hero h1 .line:nth-child(2) > span { animation-delay: 150ms; }
+.hero h1 .line:nth-child(3) > span { animation-delay: 240ms; }
+
+@keyframes line-up {
+  to { transform: translateY(0); }
+}
+
+.hero .lede {
+  font-size: clamp(15px, 1.6vw, 17.5px);
+  line-height: 1.55;
+  color: var(--ink-2);
+  max-width: 58ch;
+  margin: 0 0 30px;
+  opacity: 0;
+  animation: rise-in 620ms var(--ease-out) 360ms forwards;
+}
+
+.hero .lede strong { color: var(--ink); font-weight: 600; }
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.hero-panel {
+  opacity: 0;
+  animation: rise-in 640ms var(--ease-out) 480ms forwards;
+}
+
+/* ---- the proof card: the product's claim, demonstrated rather than stated ---- */
+
+.proof {
+  margin-top: 46px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 18px;
+  max-width: 760px;
+  opacity: 0;
+  animation: rise-in 700ms var(--ease-out) 640ms forwards;
+}
+
+.proof-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+}
+
+.proof-card .k {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ink-3);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.proof-card .v {
+  font-family: Charter, Georgia, serif;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.proof-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-3);
+}
+
+.proof-link svg { display: block; }
+
+.proof-link .trace {
+  stroke-dasharray: 46;
+  stroke-dashoffset: 46;
+  animation: trace 900ms var(--ease-out) 1050ms forwards;
+}
+
+@keyframes trace {
+  to { stroke-dashoffset: 0; }
+}
+
+@media (max-width: 760px) {
+  .proof { grid-template-columns: 1fr; gap: 10px; }
+  .proof-link { transform: rotate(90deg); }
+}
+
+/* ---- scroll reveal ---- */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 520ms var(--ease-out), transform 520ms var(--ease-out);
+}
+
+.reveal[data-seen='true'] { opacity: 1; transform: none; }
+
+/* ---- reduced motion: keep meaning, drop movement ---- */
+
+@media (prefers-reduced-motion: reduce) {
+  .hero::before, .hero::after { animation: none; }
+  .eyebrow .dot { animation: none; }
+  .hero h1 .line > span { transform: none; animation: none; }
+  .hero .lede, .hero-panel, .proof { opacity: 1; animation: none; }
+  .proof-link .trace { stroke-dashoffset: 0; animation: none; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+}
 </style>
 </head>
 <body>
@@ -556,33 +768,63 @@ mark[data-live='true'] { background: var(--mark-live); }
   </div>
 </header>
 
-<main id="intake" class="intake">
-  <h1>What does the label actually say?</h1>
-  <p>
-    Add the medicines you take. Leaflet reads the labels the FDA approved and
-    shows you the serious warnings, the ones that apply to combinations, and
-    where each one is written down. It never writes a sentence about your
-    medicines, so there is nothing it could invent.
-  </p>
+<main id="intake" class="hero">
+  <div class="hero-inner">
 
-  <div class="dropzone">
-    <div class="med-entry">
-      <input type="text" id="med-input" placeholder="Type a medicine, then press Enter" autocomplete="off" spellcheck="false">
-      <button class="btn" id="add" type="button">Add</button>
+    <span class="eyebrow"><span class="dot"></span> Reads the label, never writes one</span>
+
+    <h1>
+      <span class="line"><span>What does the</span></span>
+      <span class="line"><span>label actually say?</span></span>
+    </h1>
+
+    <p class="lede">
+      Ask a language model about your medication and it will answer confidently.
+      It may cite a study that does not exist, and it will never tell you which
+      happened. Leaflet reads the labels the FDA approved and shows you the
+      serious warnings, the ones that apply to combinations, and
+      <strong>exactly where each one is written down</strong>.
+    </p>
+
+    <div class="hero-panel">
+      <div class="dropzone">
+        <div class="med-entry">
+          <input type="text" id="med-input" placeholder="Type a medicine, then press Enter" autocomplete="off" spellcheck="false">
+          <button class="btn" id="add" type="button">Add</button>
+        </div>
+        <div id="meds" class="meds"></div>
+        <div class="dropzone-hint" id="med-count">No medicines added yet</div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="check" type="button" disabled>Check these medicines</button>
+        <button class="btn" id="sample" type="button">Try a sample list</button>
+      </div>
+      <div id="error" class="error" hidden></div>
     </div>
-    <div id="meds" class="meds"></div>
-    <div class="dropzone-hint" id="med-count">No medicines added yet</div>
-  </div>
 
-  <div class="actions">
-    <button class="btn btn-primary" id="check" type="button" disabled>Check these medicines</button>
-    <button class="btn" id="sample" type="button">Try a sample list</button>
+    <div class="proof">
+      <div class="proof-card">
+        <div class="k">What it shows you</div>
+        <div class="v">“Warfarin sodium can cause major or fatal bleeding.”</div>
+      </div>
+      <div class="proof-link" aria-hidden="true">
+        <svg width="54" height="20" viewBox="0 0 54 20" fill="none">
+          <path class="trace" d="M2 10h44" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M40 4.5 47.5 10 40 15.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="proof-card">
+        <div class="k">Where it came from</div>
+        <div class="v">FDA label &middot; boxed warning &middot; one click to the source</div>
+      </div>
+    </div>
+
+    <p class="disclaimer">
+      Leaflet quotes public FDA labels. It is not medical advice and it does not
+      know your history. Talk to a pharmacist or doctor before changing anything.
+    </p>
   </div>
-  <p class="disclaimer">
-    Leaflet quotes public FDA labels. It is not medical advice and it does not
-    know your history. Talk to a pharmacist or doctor before changing anything.
-  </p>
-  <div id="error" class="error" hidden></div>
 </main>
 
 <div class="workspace" id="results" hidden>

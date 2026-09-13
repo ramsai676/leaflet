@@ -1,0 +1,207 @@
+/* The hero is the only part of these tools a judge sees before deciding whether
+   to care. It gets motion; the working interface does not, because an animation
+   you see once can afford delight and one you see fifty times cannot. */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: 92px 20px 72px;
+  isolation: isolate;
+}
+
+/* A slow colour field behind the headline. Two blurred radials drifting past
+   each other reads as depth without a gradient mesh library or a canvas. */
+.hero::before,
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: -40% -20%;
+  z-index: -1;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.85;
+  will-change: transform;
+}
+
+.hero::before {
+  background: radial-gradient(circle at 30% 40%, var(--glow-a), transparent 62%);
+  animation: drift-a 26s var(--ease-in-out) infinite alternate;
+}
+
+.hero::after {
+  background: radial-gradient(circle at 70% 60%, var(--glow-b), transparent 62%);
+  animation: drift-b 31s var(--ease-in-out) infinite alternate;
+}
+
+@keyframes drift-a {
+  from { transform: translate3d(-6%, -3%, 0) scale(1); }
+  to   { transform: translate3d(7%, 5%, 0) scale(1.12); }
+}
+
+@keyframes drift-b {
+  from { transform: translate3d(5%, 4%, 0) scale(1.08); }
+  to   { transform: translate3d(-7%, -4%, 0) scale(1); }
+}
+
+.hero-inner { max-width: 900px; margin: 0 auto; }
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 13px;
+  margin-bottom: 22px;
+}
+
+.eyebrow .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--risk);
+  box-shadow: 0 0 0 0 var(--risk);
+  animation: pulse 2.4s ease-out infinite;
+}
+
+@keyframes pulse {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--risk) 55%, transparent); }
+  70%  { box-shadow: 0 0 0 7px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.hero h1 {
+  font-size: clamp(32px, 5.4vw, 54px);
+  line-height: 1.06;
+  letter-spacing: -0.033em;
+  font-weight: 660;
+  margin: 0 0 18px;
+  max-width: 17ch;
+}
+
+.hero h1 .line { display: block; overflow: hidden; }
+
+/* Each line rises from behind the one above it, which reads as the sentence
+   assembling rather than as text sliding around. */
+.hero h1 .line > span {
+  display: block;
+  transform: translateY(100%);
+  animation: line-up 760ms var(--ease-out) forwards;
+}
+
+.hero h1 .line:nth-child(1) > span { animation-delay: 60ms; }
+.hero h1 .line:nth-child(2) > span { animation-delay: 150ms; }
+.hero h1 .line:nth-child(3) > span { animation-delay: 240ms; }
+
+@keyframes line-up {
+  to { transform: translateY(0); }
+}
+
+.hero .lede {
+  font-size: clamp(15px, 1.6vw, 17.5px);
+  line-height: 1.55;
+  color: var(--ink-2);
+  max-width: 58ch;
+  margin: 0 0 30px;
+  opacity: 0;
+  animation: rise-in 620ms var(--ease-out) 360ms forwards;
+}
+
+.hero .lede strong { color: var(--ink); font-weight: 600; }
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.hero-panel {
+  opacity: 0;
+  animation: rise-in 640ms var(--ease-out) 480ms forwards;
+}
+
+/* ---- the proof card: the product's claim, demonstrated rather than stated ---- */
+
+.proof {
+  margin-top: 46px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 18px;
+  max-width: 760px;
+  opacity: 0;
+  animation: rise-in 700ms var(--ease-out) 640ms forwards;
+}
+
+.proof-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+}
+
+.proof-card .k {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ink-3);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.proof-card .v {
+  font-family: Charter, Georgia, serif;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.proof-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-3);
+}
+
+.proof-link svg { display: block; }
+
+.proof-link .trace {
+  stroke-dasharray: 46;
+  stroke-dashoffset: 46;
+  animation: trace 900ms var(--ease-out) 1050ms forwards;
+}
+
+@keyframes trace {
+  to { stroke-dashoffset: 0; }
+}
+
+@media (max-width: 760px) {
+  .proof { grid-template-columns: 1fr; gap: 10px; }
+  .proof-link { transform: rotate(90deg); }
+}
+
+/* ---- scroll reveal ---- */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 520ms var(--ease-out), transform 520ms var(--ease-out);
+}
+
+.reveal[data-seen='true'] { opacity: 1; transform: none; }
+
+/* ---- reduced motion: keep meaning, drop movement ---- */
+
+@media (prefers-reduced-motion: reduce) {
+  .hero::before, .hero::after { animation: none; }
+  .eyebrow .dot { animation: none; }
+  .hero h1 .line > span { transform: none; animation: none; }
+  .hero .lede, .hero-panel, .proof { opacity: 1; animation: none; }
+  .proof-link .trace { stroke-dashoffset: 0; animation: none; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+}

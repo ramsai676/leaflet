@@ -50,7 +50,7 @@ checkCollisions(pieces);
 const js = pieces.map(p => `/* ---- ${p.name} ---- */\n${p.code}`).join('\n\n');
 
 const html = src('shell.html')
-  .replace('/*__CSS__*/', () => src('app.css'))
+  .replace('/*__CSS__*/', () => [src('app.css'), src('hero.css')].join('\n'))
   .replace('/*__JS__*/', () => `(function(){\n'use strict';\n${js}\n})();`);
 
 // A bundle that does not parse is worse than a failed build: the build reports
