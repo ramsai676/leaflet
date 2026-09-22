@@ -65,4 +65,4 @@ try {
 writeFileSync(join(root, 'index.html'), html, 'utf8');
 
 const kb = (Buffer.byteLength(html) / 1024).toFixed(1);
-console.log(`index.html written — ${kb} KB, ${MODULES.length} modules inlined, 0 dependencies`);
+console.log(`index.html written , ${kb} KB, ${MODULES.length} modules inlined, 0 dependencies`);
