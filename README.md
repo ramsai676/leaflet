@@ -1,4 +1,19 @@
-# Leaflet
+<!-- header:start -->
+<p align="center">
+  <img src=".github/banner.png" alt="Leaflet: Add the medicines you take. See the FDA-documented risks, each quoted from its label." width="100%">
+</p>
+
+<p align="center">
+  <a href="https://ramsai676.github.io/leaflet/"><img src="https://img.shields.io/badge/Live%20demo-Open%20in%20browser-fb7185?style=for-the-badge" alt="Live demo"></a>
+  <img src="https://img.shields.io/badge/-JavaScript-1f2937?style=flat-square&logo=javascript&logoColor=white" alt="JavaScript">
+  <img src="https://img.shields.io/badge/tests-included-22c55e?style=flat-square" alt="Tests included">
+</p>
+
+<p align="center">
+  <img src=".github/screenshot.png" alt="Leaflet screenshot" width="100%">
+</p>
+
+<!-- header:end -->
 
 Add the medicines someone takes. Leaflet shows the FDA-documented risks, and
 every warning is quoted from the label it came from.
